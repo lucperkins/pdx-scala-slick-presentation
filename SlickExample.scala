@@ -8,10 +8,10 @@ import com.github.tototoshi.csv._
 import scala.util.{ Try, Success, Failure }
 
 object PostgresSupport {
-	val db = Database.forURL(
-		url = "jdbc:postgresql://localhost:5432/pdx-scala",
-		driver = "org.postgresql.Driver"
-	)
+  val db = Database.forURL(
+    url = "jdbc:postgresql://localhost:5432/pdx-scala",
+    driver = "org.postgresql.Driver"
+  )
 }
 
 case class Tweet(
