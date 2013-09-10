@@ -45,7 +45,7 @@ object TweetDAO {
     def findByCr     = createFinderBy(_.created)
     def findByLast   = createFinderBy(_.lastModified)
     def findByUser   = createFinderBy(_.username)
-	}
+  }
 
   def allTweets = Query(Tweets).list
 
@@ -59,16 +59,16 @@ object TweetDAO {
 
   def addMultipleTweets(args: List[(String, String)]) = {
     args.map(arg => addTweet(arg._1, arg._2)) match {
-      case _: List[_] => println("Tweets have been successfully added")
-      case _          => println("Something went wrong")
+      case _: List[_] => "Tweets have been successfully added"
+      case None       => "Something went wrong"
     }
   }
 
   def addTweet(username: String, content: String) = db.withSession {
     val now = new DateTime()
     Tweets.forInsert.insert(now, now, content, false, username) match {
-      case _: Long => println("Tweet has been successfully added")
-      case 0       => println("Something went wrong")
+      case 0 => "Something went wrong"
+      case n => "Tweet added successfully"
     }
   }
 
