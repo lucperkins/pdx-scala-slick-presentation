@@ -15,55 +15,54 @@ object PostgresSupport {
 }
 
 case class Tweet(
-	tweetId:      Long,
-	created:      DateTime,
-	lastModified: DateTime,
-	content:      String,
-	retweeted:    Boolean,
-	username:     String
+  tweetId:      Long,
+  created:      DateTime,
+  lastModified: DateTime,
+  content:      String,
+  retweeted:    Boolean,
+  username:     String
 )
 	
-case class User(userId:   Long,
-	            username: String)
+case class User(userId:   Long, username: String)
 
 object TweetDAO {
-	import CSV._
-	import PostgresSupport.db
+  import CSV._
+  import PostgresSupport.db
 
-	object Tweets extends Table[Tweet](/*Some("tweetSchema"),*/"tweets") {
-		def tweetId      = column[Long]     ("tweetId", O.AutoInc, O.PrimaryKey, O.DBType("BIGINT"))
-		def created      = column[DateTime] ("created", O.DBType("TIMESTAMP"))
-		def lastModified = column[DateTime] ("lastmodified", O.DBType("TIMESTAMP"))
-		def content      = column[String]   ("content", O.DBType("VARCHAR(140)"))
-		def retweeted    = column[Boolean]  ("retweeted", O.DBType("BOOLEAN"))
-		def username     = column[String]   ("username", O.DBType("VARCHAR(10)"))
+  object Tweets extends Table[Tweet](/*Some("tweetSchema"),*/"tweets") {
+    def tweetId      = column[Long]     ("tweetId", O.AutoInc, O.PrimaryKey, O.DBType("BIGINT"))
+    def created      = column[DateTime] ("created", O.DBType("TIMESTAMP"))
+    def lastModified = column[DateTime] ("lastmodified", O.DBType("TIMESTAMP"))
+    def content      = column[String]   ("content", O.DBType("VARCHAR(140)"))
+    def retweeted    = column[Boolean]  ("retweeted", O.DBType("BOOLEAN"))
+    def username     = column[String]   ("username", O.DBType("VARCHAR(10)"))
 
-		def *            = (tweetId ~ created ~ lastModified ~ content ~ retweeted ~ username) <> (Tweet, Tweet.unapply _)
-		def forInsert    = (created ~ lastModified ~ content ~ retweeted ~ username) returning tweetId
-		def tweetIdx     = index("INDEX", tweetId, unique = true)
+    def *            = (tweetId ~ created ~ lastModified ~ content ~ retweeted ~ username) <> (Tweet, Tweet.unapply _)
+    def forInsert    = (created ~ lastModified ~ content ~ retweeted ~ username) returning tweetId
+    def tweetIdx     = index("INDEX", tweetId, unique = true)
 
-        def findById     = createFinderBy(_.tweetId)
-        def findByCr     = createFinderBy(_.created)
-        def findByLast   = createFinderBy(_.lastModified)
-        def findByUser   = createFinderBy(_.username)
+    def findById     = createFinderBy(_.tweetId)
+    def findByCr     = createFinderBy(_.created)
+    def findByLast   = createFinderBy(_.lastModified)
+    def findByUser   = createFinderBy(_.username)
 	}
 
-	def allTweets = Query(Tweets).list
+  def allTweets = Query(Tweets).list
 
-    def listAllTweets = db.withSession {
-        pretty(Query(Tweets).sortBy(_.tweetId.asc).list)
+  def listAllTweets = db.withSession {
+    pretty(Query(Tweets).sortBy(_.tweetId.asc).list)
+  }
+
+  def mostRecent = db.withSession {
+    Query(Tweets).sortBy(_.created).list
+  }
+
+  def addMultipleTweets(args: List[(String, String)]) = {
+    args.map(arg => addTweet(arg._1, arg._2)) match {
+      case _: List[_] => println("Tweets have been successfully added")
+      case _          => println("Something went wrong")
     }
-
-    def mostRecent = db.withSession {
-        Query(Tweets).sortBy(_.created).list
-    }
-
-	def addMultipleTweets(args: List[(String, String)]) = {
-		args.map(arg => addTweet(arg._1, arg._2)) match {
-			case _: List[_] => println("Tweets have been successfully added")
-			case _          => println("Something went wrong")
-		}
-	}
+  }
 
 	def addTweet(username: String, content: String) = db.withSession {
 		val now = new DateTime()
