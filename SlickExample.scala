@@ -14,12 +14,14 @@ object PostgresSupport {
 	)
 }
 
-case class Tweet(tweetId:      Long,
-	             created:      DateTime,
-	             lastModified: DateTime,
-	             content:      String,
-	             retweeted:    Boolean,
-	             username:     String)
+case class Tweet(
+	tweetId:      Long,
+	created:      DateTime,
+	lastModified: DateTime,
+	content:      String,
+	retweeted:    Boolean,
+	username:     String
+)
 	
 case class User(userId:   Long,
 	            username: String)
