@@ -5,7 +5,7 @@ import org.joda.time.DateTime
 import scala.slick.driver.PostgresDriver
 import com.github.tminglei.slickpg._
 import com.github.tototoshi.csv._
-import scala.util.{ Try, Success, Failure }
+// import scala.util.{ Try, Success, Failure }
 
 object PostgresSupport {
   val db = Database.forURL(
