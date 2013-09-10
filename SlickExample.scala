@@ -5,11 +5,10 @@ import org.joda.time.DateTime
 import scala.slick.driver.PostgresDriver
 import com.github.tminglei.slickpg._
 import com.github.tototoshi.csv._
-// import scala.util.{ Try, Success, Failure }
 
 object PostgresSupport {
   val db = Database.forURL(
-    url = "jdbc:postgresql://localhost:5432/pdx-scala",
+    url    = "jdbc:postgresql://localhost:5432/pdx-scala",
     driver = "org.postgresql.Driver"
   )
 }
@@ -22,8 +21,6 @@ case class Tweet(
   retweeted:    Boolean,
   username:     String
 )
-	
-case class User(userId: Long, username: String)
 
 object TweetDAO {
   import CSV._
