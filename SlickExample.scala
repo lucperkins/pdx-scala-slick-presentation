@@ -47,8 +47,6 @@ object TweetDAO {
     def findByUser   = createFinderBy(_.username)
   }
 
-  def allTweets = Query(Tweets).list
-
   def listAllTweets = db.withSession {
     pretty(Query(Tweets).sortBy(_.tweetId.asc).list)
   }
