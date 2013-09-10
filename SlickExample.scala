@@ -56,10 +56,7 @@ object TweetDAO {
   }
 
   def addMultipleTweets(args: List[(String, String)]) = {
-    args.map(arg => addTweet(arg._1, arg._2)) match {
-      case _: List[_] => "Tweets have been successfully added"
-      case None       => "Something went wrong"
-    }
+    args.map(arg => addTweet(arg._1, arg._2)).map(result => println(result))
   }
 
   def addTweet(username: String, content: String) = db.withSession {
