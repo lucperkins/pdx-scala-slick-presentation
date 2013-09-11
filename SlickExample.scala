@@ -30,7 +30,7 @@ case class Tweet(
 )
 
 object TweetDAO extends PostgresSupport {
-  import CSV._
+  import CSVConverter._
 
   object Tweets extends Table[Tweet](/*Some("tweetSchema"),*/"tweets") {
     def tweetId      = column[Long]     ("tweetId", O.AutoInc, O.PrimaryKey, O.DBType("BIGINT"))
@@ -77,9 +77,14 @@ object TweetDAO extends PostgresSupport {
     Query(Tweets).where(_.tweetId is tweetId).first
   }
 
-  def unionQueryExample = db.withSession {
-    ((Query(Tweets).filter(_.content > "b")) union (Query(Tweets).filter(_.content < "m"))).list
-  }
+  /*def unionQueryExample = db.withSession {
+    (for {
+      q1 <- Query(Tweets).filter(_.content > "b")
+      q2 <- Query(Tweets).filter(_.content < "m")
+      val union = q1 union q2
+      // val unionAll = q1 unionAll q2
+    } yield union).list
+  }*/
 
   val tweetByIdRange = for {
     (min, max) <- Parameters[(Long, Long)]
@@ -147,19 +152,22 @@ object TweetDAO extends PostgresSupport {
   }
 
   def populateDB(filename: String) = {
-    addMultipleTweets(CSV.convertCSVToTweets(filename))
+    addMultipleTweets(CSVConverter.convert(filename))
   }
 
   def pretty(tweetList: List[Tweet]) = {
-    tweetList.map(t => println(t.tweetId + ": " + t.username + ", " + t.content))
+    tweetList.map(t => println(t.tweetId + ": " + 
+                               t.username + ", " + 
+                               t.content + ", created: " +
+                               t.created.toDate.toString))
   }
 }
 
-object CSV {
+object CSVConverter {
   import java.io.File
   import scala.collection.mutable.ListBuffer
 
-  def convertCSVToTweets(filename: String) = {
+  def convert(filename: String) = {
     val reader = CSVReader.open(new File(filename))
     val rawList = reader.iterator.toList
     val tweets = new ListBuffer[(String, String)]
@@ -181,7 +189,7 @@ import com.github.tminglei.slickpg._
 import com.github.tototoshi.csv._
 import TweetDAO._
 import TweetDAO.Tweets
-import CSV._
+import CSVConverter._
 val T = TweetDAO
 
 */
