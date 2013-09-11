@@ -11,4 +11,5 @@ libraryDependencies ++= List(
   "com.github.tototoshi" %% "slick-joda-mapper" % "0.3.0",
   "com.github.tminglei" % "slick-pg_2.10.1" % "0.1.3",
   "com.github.tototoshi" %% "scala-csv" % "1.0.0-SNAPSHOT"
+  // "org.clapper" %% "grizzled-slf4j" % "0.6.9"
 )

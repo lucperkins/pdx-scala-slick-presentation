@@ -5,13 +5,20 @@ import org.joda.time.DateTime
 import scala.slick.driver.PostgresDriver
 import com.github.tminglei.slickpg._
 import com.github.tototoshi.csv._
+// import grizzled.slf4j.Logger
 
-object PostgresSupport {
-  val db = Database.forURL(
+trait PostgresSupport {
+  def db = Database.forURL(
     url    = "jdbc:postgresql://localhost:5432/pdx-scala",
     driver = "org.postgresql.Driver"
   )
+
+  /*def go[T](f: Session => T) = {
+
+  }*/
 }
+
+object PostgresSupport extends PostgresSupport
 
 case class Tweet(
   tweetId:      Long,
@@ -22,9 +29,8 @@ case class Tweet(
   username:     String
 )
 
-object TweetDAO {
+object TweetDAO extends PostgresSupport {
   import CSV._
-  import PostgresSupport.db
 
   object Tweets extends Table[Tweet](/*Some("tweetSchema"),*/"tweets") {
     def tweetId      = column[Long]     ("tweetId", O.AutoInc, O.PrimaryKey, O.DBType("BIGINT"))
@@ -35,6 +41,7 @@ object TweetDAO {
     def username     = column[String]   ("username", O.DBType("VARCHAR(10)"))
 
     def *            = (tweetId ~ created ~ lastModified ~ content ~ retweeted ~ username) <> (Tweet, Tweet.unapply _)
+
     def forInsert    = (created ~ lastModified ~ content ~ retweeted ~ username) returning tweetId
     def tweetIdx     = index("INDEX", tweetId, unique = true)
 
@@ -43,6 +50,8 @@ object TweetDAO {
     def findByLast   = createFinderBy(_.lastModified)
     def findByUser   = createFinderBy(_.username)
   }
+
+  // Show createStatements in the REPL
 
   def listAllTweets = db.withSession {
     pretty(Query(Tweets).sortBy(_.tweetId.asc).list)
@@ -60,7 +69,7 @@ object TweetDAO {
     val now = new DateTime()
     Tweets.forInsert.insert(now, now, content, false, username) match {
       case 0 => "Something went wrong"
-      case n => "Tweet added successfully"
+      case n => "Tweet number    " + n + " added successfully"
     }
   }
 
@@ -79,8 +88,9 @@ object TweetDAO {
 
   def deleteTweetById(id: Long) = db.withSession {
     Tweets.filter(_.tweetId === id).delete match {
-      case 1 => println("Tweet was successfully deleted")
-      case _ => println("Something went wrong")
+      case 0 => "0 tweets deleted"
+      case 1 => "1 tweet successfully deleted"
+      case n => n + " tweets successfully deleted"
     }
   }
 
@@ -89,7 +99,7 @@ object TweetDAO {
     Tweets.where(_.tweetId is tweetId).
       map(t => t.lastModified).
       update(now) match {
-        case 1 => println("Tweet was successfully modified")
+        case 1 => println("Tweet was successfully marked as modified")
         case _ => println("Something went wrong")
       }
   }
@@ -169,7 +179,6 @@ import org.joda.time.DateTime
 import scala.slick.driver.PostgresDriver
 import com.github.tminglei.slickpg._
 import com.github.tototoshi.csv._
-val db = PostgresSupport.db
 import TweetDAO._
 import TweetDAO.Tweets
 import CSV._
