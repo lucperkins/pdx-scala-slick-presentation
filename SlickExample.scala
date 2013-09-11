@@ -1,11 +1,10 @@
 import scala.slick.driver.PostgresDriver.simple._
-import Database.threadLocalSession
+// import Database.threadLocalSession
 import com.github.tototoshi.slick.JodaSupport._
 import org.joda.time.DateTime
 import scala.slick.driver.PostgresDriver
 import com.github.tminglei.slickpg._
 import com.github.tototoshi.csv._
-// import grizzled.slf4j.Logger
 
 trait PostgresSupport {
   def db = Database.forURL(
@@ -13,12 +12,8 @@ trait PostgresSupport {
     driver = "org.postgresql.Driver"
   )
 
-  /*def go[T](f: Session => T) = {
-
-  }*/
+  implicit val session: Session = db.createSession()
 }
-
-object PostgresSupport extends PostgresSupport
 
 case class Tweet(
   tweetId:      Long,
@@ -38,7 +33,7 @@ object TweetDAO extends PostgresSupport {
     def lastModified = column[DateTime] ("lastmodified", O.DBType("TIMESTAMP"))
     def content      = column[String]   ("content", O.DBType("VARCHAR(140)"))
     def retweeted    = column[Boolean]  ("retweeted", O.DBType("BOOLEAN"))
-    def username     = column[String]   ("username", O.DBType("VARCHAR(10)"))
+    def username     = column[String]   ("username", O.DBType("VARCHAR(12)"))
 
     def *            = (tweetId ~ created ~ lastModified ~ content ~ retweeted ~ username) <> (Tweet, Tweet.unapply _)
 
@@ -51,47 +46,51 @@ object TweetDAO extends PostgresSupport {
     def findByUser   = createFinderBy(_.username)
   }
 
-  // Show createStatements in the REPL
+  // Note: show createStatements in the REPL
 
-  def listAllTweets = db.withSession {
-    pretty(Query(Tweets).sortBy(_.tweetId.asc).list)
+  def listAllTweets = {
+    Tweets.sortBy(_.tweetId.asc).list
   }
 
-  def mostRecent = db.withSession {
-    Query(Tweets).sortBy(_.created).list
+  def mostRecent = {
+    Tweets.sortBy(_.created).list
   }
 
   def addMultipleTweets(args: List[(String, String)]) = {
     args.map(arg => addTweet(arg._1, arg._2)).map(result => println(result))
   }
 
-  def addTweet(username: String, content: String) = db.withSession {
+  def addTweet(username: String, content: String) = {
     val now = new DateTime()
-    Tweets.forInsert.insert(now, now, content, false, username) match {
+    val retweeted = false
+    Tweets.forInsert.insert(now, now, content, retweeted, username) match {
       case 0 => "Something went wrong"
-      case n => "Tweet number    " + n + " added successfully"
+      case n => "Tweet number " + n + " added successfully"
     }
   }
 
   def fetchTweetById(tweetId: Long) = db.withSession {
-    Query(Tweets).where(_.tweetId is tweetId).first
+    Tweets.where(_.tweetId is tweetId).first
   }
 
-  /*def unionQueryExample = db.withSession {
-    (for {
-      q1 <- Query(Tweets).filter(_.content > "b")
-      q2 <- Query(Tweets).filter(_.content < "m")
-      val union = q1 union q2
-      // val unionAll = q1 unionAll q2
-    } yield union).list
-  }*/
+  def unionQueryExample = {
+    val q1 = Query(Tweets).filter(_.tweetId < 50.toLong)
+    val q2 = Query(Tweets).filter(_.content > "g")
+    (q1 union q2).list
+  }
+
+  def unionAllQueryExample = {
+    val q1 = Query(Tweets).filter(_.tweetId < 50.toLong)
+    val q2 = Query(Tweets).filter(_.content > "g")
+    (q1 unionAll q2).list
+  }
 
   val tweetByIdRange = for {
     (min, max) <- Parameters[(Long, Long)]
     t <- Tweets if t.tweetId > min && t.tweetId < max
   } yield t
 
-  def deleteTweetById(id: Long) = db.withSession {
+  def deleteTweetById(id: Long) = {
     Tweets.filter(_.tweetId === id).delete match {
       case 0 => "0 tweets deleted"
       case 1 => "1 tweet successfully deleted"
@@ -99,7 +98,15 @@ object TweetDAO extends PostgresSupport {
     }
   }
 
-  def modifyTweetById(tweetId: Long) = db.withSession {
+  def deleteMultipleByIds(ids: Long*) = {
+    Tweets.filter(_.tweetId inSetBind ids).delete match {
+      case 0 => "0 tweets deleted"
+      case 1 => "1 tweet successfully deleted"
+      case n => n + " tweets successfully deleted"
+    }
+  }
+
+  def modifyTweetById(tweetId: Long) = {
     val now = new DateTime()
     Tweets.where(_.tweetId is tweetId).
       map(t => t.lastModified).
@@ -109,15 +116,15 @@ object TweetDAO extends PostgresSupport {
       }
   }
 
-  def findByMultipleIds(ids: Long*) = db.withSession {
+  def findByMultipleIds(ids: Long*) = {
     Tweets.where(_.tweetId inSetBind ids).map(tweet => tweet).list
   }
 
-  def sortTweetsAlphabetically = db.withSession {
+  def sortTweetsAlphabetically = {
     Query(Tweets).sortBy(_.content.asc).list.map(t => t.content)
   }
 
-  def retweetById(id: Long) = db.withSession {
+  def retweetById(id: Long) = {
     Tweets.where(_.tweetId === id).
       map(t => t.retweeted).
       update(true) match {
@@ -126,7 +133,7 @@ object TweetDAO extends PostgresSupport {
       }
   }
 
-  def retweetByIds(ids: Long*) = db.withSession {
+  def retweetByIds(ids: Long*) = {
     Tweets.where(_.tweetId inSetBind ids).
       where(_.retweeted === false).
       map(t => t.retweeted).update(true) match {
@@ -135,15 +142,27 @@ object TweetDAO extends PostgresSupport {
       }
   }
 
-  def numberOfTweets = db.withSession {
+  def deleteAll = {
+    Query(Tweets).delete match {
+      case 0 => "0 tweets deleted"
+      case 1 => "1 tweet successfully deleted"
+      case n => n + " tweets successfully deleted"
+    }
+  }
+
+  def allTweetsForUser(username: String) = {
+    Tweets.where(_.username === username).list
+  }
+
+  def numberOfTweets = {
     Query(Tweets).list.length
   }
 
-  def createTables = db.withSession {
+  def createTables = {
     Tweets.ddl.create
   }
 
-  def dropTables = db.withSession {
+  def dropTables = {
     Tweets.ddl.drop
   }
 
@@ -155,11 +174,13 @@ object TweetDAO extends PostgresSupport {
     addMultipleTweets(CSVConverter.convert(filename))
   }
 
-  def pretty(tweetList: List[Tweet]) = {
-    tweetList.map(t => println(t.tweetId + ": " + 
-                               t.username + ", " + 
-                               t.content + ", created: " +
-                               t.created.toDate.toString))
+  def pretty(tweetList: List[Tweet]): List[Unit] = {
+    tweetList.map(t => println(t.tweetId.toString + ": " + 
+                               t.username.toString + ",\n     \"" + 
+                               t.content.toString + "\",\n     created: " +
+                               t.created.toDate.toString + "\n---------------------------------------------------"
+                               )
+    )
   }
 }
 
@@ -181,7 +202,6 @@ object CSVConverter {
 For the SCALA REPL:
 
 import scala.slick.driver.PostgresDriver.simple._
-import Database.threadLocalSession
 import com.github.tototoshi.slick.JodaSupport._
 import org.joda.time.DateTime
 import scala.slick.driver.PostgresDriver
